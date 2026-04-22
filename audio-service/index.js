@@ -223,12 +223,19 @@ app.post('/traiter-episode', async (req, res) => {
       .eq('id', episodeId);
 
     // 9. Envoyer l'email au destinataire
-    await resend.emails.send({
-      from: 'Ripple <noreply@rippleapp.fr>',
+    const { data: emailData, error: emailErreur } = await resend.emails.send({
+      from: 'Ripple <onboarding@resend.dev>',
       to: projet.destinataire_email,
       subject: `🎙️ Épisode ${episode.numero} — ${episode.titre}`,
       html: emailDestinataire(projet, episode, audioUrl),
     });
+
+    if (emailErreur) {
+      console.error('❌ Erreur Resend:', JSON.stringify(emailErreur));
+      throw new Error(`Envoi email échoué : ${emailErreur.message}`);
+    }
+
+    console.log(`📧 Email envoyé, ID Resend : ${emailData?.id}`);
 
     // 10. Marquer comme envoyé
     await supabase
