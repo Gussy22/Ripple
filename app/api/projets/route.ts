@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
       // Envoyer l'email d'invitation
       await resend.emails.send({
-        from: "Dearly <noreply@dearlyapp.fr>",
+        from: "Dearly <bonjour@dearly.fr>",
         to: contrib.email,
         subject: `${organisateurEmail.split("@")[0]} vous invite à participer au podcast de ${destinatairePrenom} 🎙️`,
         html: `

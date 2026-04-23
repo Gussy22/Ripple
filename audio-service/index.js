@@ -224,7 +224,7 @@ app.post('/traiter-episode', async (req, res) => {
 
     // 9. Envoyer l'email au destinataire
     const { data: emailData, error: emailErreur } = await resend.emails.send({
-      from: 'Dearly <onboarding@resend.dev>',
+      from: 'Dearly <bonjour@dearly.fr>',
       to: projet.destinataire_email,
       subject: `🎙️ Épisode ${episode.numero} — ${episode.titre}`,
       html: emailDestinataire(projet, episode, audioUrl),
