@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Categorie } from "@/lib/types";
 import { TITRES_PAR_CATEGORIE } from "@/lib/titres-suggestions";
+import { JINGLES_PRESETS } from "@/lib/jingles-presets";
 
 const CATEGORIES: { valeur: Categorie; label: string; emoji: string }[] = [
   { valeur: "anniversaire", label: "Anniversaire", emoji: "🎂" },
@@ -31,6 +32,8 @@ export default function NouveauProjet() {
   const [titresEpisodes, setTitresEpisodes] = useState<string[]>([]);
   const [contributeurs, setContributeurs] = useState([{ prenom: "", email: "" }]);
   const [jingleFile, setJingleFile] = useState<File | null>(null);
+  const [jinglePresetId, setJinglePresetId] = useState<string | null>(null);
+  const [jinglePreview, setJinglePreview] = useState<HTMLAudioElement | null>(null);
   const [erreur, setErreur] = useState("");
 
   // Étape 1 : Catégorie + destinataire
@@ -74,6 +77,7 @@ export default function NouveauProjet() {
       formData.append("titresEpisodes", JSON.stringify(titresEpisodes));
       formData.append("contributeurs", JSON.stringify(contributeurs.filter(c => c.email.trim())));
       if (jingleFile) formData.append("jingle", jingleFile);
+      if (jinglePresetId) formData.append("jinglePresetId", jinglePresetId);
 
       const res = await fetch("/api/projets", {
         method: "POST",
@@ -387,30 +391,72 @@ export default function NouveauProjet() {
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-1">Le jingle</h2>
               <p className="text-gray-500 text-sm mb-6">
-                Uploadez un fichier audio MP3 ou WAV (5 à 30 secondes idéalement).
+                Choisissez un jingle parmi nos suggestions, ou uploadez le vôtre.
                 Il sera joué en intro et entre chaque message vocal.
               </p>
 
+              {/* Jingles pré-établis */}
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Nos jingles</p>
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                {JINGLES_PRESETS.map((j) => (
+                  <button
+                    key={j.id}
+                    onClick={() => {
+                      setJinglePresetId(j.id);
+                      setJingleFile(null);
+                      if (jinglePreview) { jinglePreview.pause(); setJinglePreview(null); }
+                    }}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all ${
+                      jinglePresetId === j.id
+                        ? "border-gray-900 bg-gray-50"
+                        : "border-gray-100 hover:border-gray-300"
+                    }`}
+                  >
+                    <p className="text-2xl mb-1">{j.emoji}</p>
+                    <p className="text-sm font-semibold text-gray-800">{j.nom}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{j.description}</p>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (jinglePreview) { jinglePreview.pause(); setJinglePreview(null); return; }
+                        const audio = new Audio(j.url);
+                        audio.play();
+                        audio.onended = () => setJinglePreview(null);
+                        setJinglePreview(audio);
+                      }}
+                      className="mt-2 text-xs text-gray-500 hover:text-gray-900 transition-colors"
+                    >
+                      {jinglePreview ? "⏹ Stop" : "▶ Écouter"}
+                    </button>
+                  </button>
+                ))}
+              </div>
+
+              {/* Upload custom */}
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Ou uploadez le vôtre</p>
               <div className="mb-6">
-                <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-colors ${
+                <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-2xl cursor-pointer transition-colors ${
                   jingleFile ? "border-green-400 bg-green-50" : "border-gray-200 hover:border-gray-400 hover:bg-gray-50"
                 }`}>
                   <input
                     type="file"
                     accept="audio/*"
                     className="hidden"
-                    onChange={(e) => setJingleFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      setJingleFile(e.target.files?.[0] || null);
+                      setJinglePresetId(null);
+                    }}
                   />
                   {jingleFile ? (
                     <div className="text-center">
-                      <p className="text-green-600 font-medium">✓ {jingleFile.name}</p>
-                      <p className="text-sm text-gray-500 mt-1">Cliquez pour changer</p>
+                      <p className="text-green-600 font-medium text-sm">✓ {jingleFile.name}</p>
+                      <p className="text-xs text-gray-400 mt-1">Cliquez pour changer</p>
                     </div>
                   ) : (
                     <div className="text-center">
-                      <p className="text-gray-400 text-3xl mb-2">🎵</p>
+                      <p className="text-gray-400 text-2xl mb-1">🎵</p>
                       <p className="text-sm text-gray-500">Cliquez pour choisir un fichier audio</p>
-                      <p className="text-xs text-gray-400 mt-1">MP3, WAV, M4A acceptés</p>
+                      <p className="text-xs text-gray-400">MP3, WAV, M4A acceptés</p>
                     </div>
                   )}
                 </label>
@@ -423,6 +469,7 @@ export default function NouveauProjet() {
                   <li>🎯 Destinataire : <span className="text-gray-800">{destinatairePrenom}</span></li>
                   <li>📅 {nombreEpisodes} épisodes à partir du <span className="text-gray-800">{dateDebut ? new Date(dateDebut).toLocaleDateString("fr-FR") : "—"}</span></li>
                   <li>👥 {contributeurs.filter(c => c.email.trim()).length} contributeur(s)</li>
+                  <li>🎵 Jingle : <span className="text-gray-800">{jingleFile ? jingleFile.name : jinglePresetId ? JINGLES_PRESETS.find(j => j.id === jinglePresetId)?.nom : "Aucun"}</span></li>
                 </ul>
               </div>
 

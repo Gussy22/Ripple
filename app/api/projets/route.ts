@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { Resend } from "resend";
+import { JINGLES_PRESETS } from "@/lib/jingles-presets";
 import crypto from "crypto";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -19,10 +20,15 @@ export async function POST(req: NextRequest) {
     const titresEpisodes = JSON.parse(formData.get("titresEpisodes") as string) as string[];
     const contributeurs = JSON.parse(formData.get("contributeurs") as string) as { prenom: string; email: string }[];
     const jingleFile = formData.get("jingle") as File | null;
+    const jinglePresetId = formData.get("jinglePresetId") as string | null;
 
-    // 1. Upload du jingle si présent
+    // 1. Résoudre l'URL du jingle (preset ou upload)
     let jingleUrl: string | null = null;
-    if (jingleFile && jingleFile.size > 0) {
+
+    if (jinglePresetId) {
+      const preset = JINGLES_PRESETS.find(j => j.id === jinglePresetId);
+      if (preset) jingleUrl = preset.url;
+    } else if (jingleFile && jingleFile.size > 0) {
       const buffer = Buffer.from(await jingleFile.arrayBuffer());
       const nomFichier = `jingles/${crypto.randomUUID()}-${jingleFile.name}`;
       const { error } = await supabase.storage
@@ -96,7 +102,7 @@ export async function POST(req: NextRequest) {
             <p>Bonjour ${contrib.prenom || ""} 👋</p>
             <p>
               Vous avez été invité(e) à contribuer à un podcast surprise pour <strong>${destinatairePrenom}</strong>.
-              Il vous suffit d'enregistrer un message vocal de <strong>3 à 5 minutes</strong> depuis votre navigateur.
+              Il vous suffit d'enregistrer un message vocal depuis votre navigateur.
             </p>
             <p>Pas besoin d'application, pas besoin de compte — juste votre voix.</p>
 
