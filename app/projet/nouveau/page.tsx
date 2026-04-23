@@ -96,7 +96,7 @@ export default function NouveauProjet() {
       <div className="max-w-xl mx-auto">
         {/* En-tête */}
         <div className="text-center mb-10">
-          <a href="/" className="text-2xl font-bold text-gray-900">ripple</a>
+          <a href="/" className="text-2xl font-bold text-gray-900">dearly</a>
           <p className="text-gray-500 mt-2">Nouveau projet</p>
         </div>
 

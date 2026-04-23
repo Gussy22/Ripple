@@ -21,7 +21,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 const resend = new Resend(process.env.RESEND_API_KEY);
-const APP_URL = process.env.APP_URL || 'https://rippleapp.fr';
+const APP_URL = process.env.APP_URL || 'https://dearlyapp.fr';
 
 // Vérifie que la requête vient bien de notre app
 function verifierSecret(req) {
@@ -85,7 +85,7 @@ function emailDestinataire(projet, episode, audioUrl) {
 
     <!-- En-tête -->
     <div style="background:#111;padding:32px;text-align:center;">
-      <p style="color:#fff;font-size:26px;font-weight:700;margin:0;letter-spacing:-0.5px;">ripple</p>
+      <p style="color:#fff;font-size:26px;font-weight:700;margin:0;letter-spacing:-0.5px;">dearly</p>
       <p style="color:#888;font-size:13px;margin:6px 0 0;">Votre podcast personnel</p>
     </div>
 
@@ -120,7 +120,7 @@ function emailDestinataire(projet, episode, audioUrl) {
 
       <p style="color:#aaa;font-size:12px;text-align:center;margin:0;">
         Prochain épisode la semaine prochaine ·
-        <a href="${APP_URL}" style="color:#aaa;">ripple</a>
+        <a href="${APP_URL}" style="color:#aaa;">dearly</a>
       </p>
     </div>
   </div>
@@ -224,7 +224,7 @@ app.post('/traiter-episode', async (req, res) => {
 
     // 9. Envoyer l'email au destinataire
     const { data: emailData, error: emailErreur } = await resend.emails.send({
-      from: 'Ripple <onboarding@resend.dev>',
+      from: 'Dearly <onboarding@resend.dev>',
       to: projet.destinataire_email,
       subject: `🎙️ Épisode ${episode.numero} — ${episode.titre}`,
       html: emailDestinataire(projet, episode, audioUrl),
@@ -258,7 +258,7 @@ app.post('/traiter-episode', async (req, res) => {
 });
 
 // Route de santé (pour vérifier que Render est en ligne)
-app.get('/health', (_req, res) => res.json({ statut: 'ok', service: 'ripple-audio' }));
+app.get('/health', (_req, res) => res.json({ statut: 'ok', service: 'dearly-audio' }));
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`🎙️ Service audio Ripple démarré sur le port ${PORT}`));
+app.listen(PORT, () => console.log(`🎙️ Service audio Dearly démarré sur le port ${PORT}`));

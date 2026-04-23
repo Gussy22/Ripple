@@ -6,7 +6,7 @@ export default function Home() {
       {/* Logo / Nom */}
       <div className="mb-12 text-center">
         <h1 className="text-5xl font-bold text-gray-900 tracking-tight mb-3">
-          ripple
+          dearly
         </h1>
         <p className="text-xl text-gray-500 max-w-md">
           Offrez un podcast fait de vraies voix à quelqu&apos;un qui compte.
@@ -22,7 +22,7 @@ export default function Home() {
         </div>
         <div className="p-6 rounded-2xl bg-gray-50">
           <div className="text-3xl mb-3">✨</div>
-          <h3 className="font-semibold text-gray-800 mb-1">Ripple monte le podcast</h3>
+          <h3 className="font-semibold text-gray-800 mb-1">Dearly monte le podcast</h3>
           <p className="text-sm text-gray-500">Jingle, voix, transitions — tout est assemblé automatiquement.</p>
         </div>
         <div className="p-6 rounded-2xl bg-gray-50">

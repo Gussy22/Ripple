@@ -56,7 +56,7 @@ export default function TableauDeBord() {
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-2">
-          <a href="/" className="text-2xl font-bold text-gray-900">ripple</a>
+          <a href="/" className="text-2xl font-bold text-gray-900">dearly</a>
         </div>
 
         {/* Message de succès */}

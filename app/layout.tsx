@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Ripple — Offrez un podcast à ceux qui comptent",
+  title: "Dearly — Offrez un podcast à ceux qui comptent",
   description: "Créez un podcast personnalisé avec les voix de vos proches, livré chaque semaine par email.",
 };
 

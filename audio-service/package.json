@@ -1,7 +1,7 @@
 {
-  "name": "ripple-audio-service",
+  "name": "dearly-audio-service",
   "version": "1.0.0",
-  "description": "Service de montage audio pour Ripple",
+  "description": "Service de montage audio pour Dearly",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

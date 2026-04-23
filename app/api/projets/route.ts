@@ -85,12 +85,12 @@ export async function POST(req: NextRequest) {
 
       // Envoyer l'email d'invitation
       await resend.emails.send({
-        from: "Ripple <noreply@rippleapp.fr>",
+        from: "Dearly <noreply@dearlyapp.fr>",
         to: contrib.email,
         subject: `${organisateurEmail.split("@")[0]} vous invite à participer au podcast de ${destinatairePrenom} 🎙️`,
         html: `
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; color: #111;">
-            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">ripple</h1>
+            <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">dearly</h1>
             <p style="color: #555; margin-bottom: 32px;">Un podcast cadeau pour ${destinatairePrenom}</p>
 
             <p>Bonjour ${contrib.prenom || ""} 👋</p>
