@@ -6,20 +6,20 @@ export const JINGLES_PRESETS = [
     nom: "Douceur",
     description: "Piano doux et chaleureux",
     emoji: "🎹",
-    url: `${SUPABASE_URL}/jingle-1.mp3`,
+    url: `${SUPABASE_URL}/Jingle-1.mp3`,
   },
   {
     id: "jingle-2",
     nom: "Lumière",
     description: "Guitare acoustique apaisante",
     emoji: "🎸",
-    url: `${SUPABASE_URL}/jingle-2.mp3`,
+    url: `${SUPABASE_URL}/Jingle-2.mp3`,
   },
   {
     id: "jingle-3",
     nom: "Sérénité",
     description: "Ambiance douce et intime",
     emoji: "✨",
-    url: `${SUPABASE_URL}/jingle-3.mp3`,
+    url: `${SUPABASE_URL}/Jingle-3.mp3`,
   },
 ];

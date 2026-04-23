@@ -19,7 +19,9 @@
       "Bash(curl -s -H \"Authorization: Bearer ripple-cron-secret-2026\" \"https://ripple-osylw5hmw-augustin-navions-projects.vercel.app/api/cron/traiter-episodes\")",
       "Bash(curl -s \"https://ripple-audio.onrender.com/health\")",
       "Bash(curl -s -X POST https://ripple-audio.onrender.com/traiter-episode -H 'Content-Type: application/json' -H 'x-service-secret: ripple-secret-audio-2026' -d '{\"episodeId\":\"5afa9c12-cd26-4250-8293-34d1125bb7bc\"}')",
-      "WebSearch"
+      "WebSearch",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://gjmktovbrzyuefemnsfq.supabase.co/storage/v1/object/public/audio/jingles-presets/jingle-1.mp3\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://gjmktovbrzyuefemnsfq.supabase.co/storage/v1/object/public/audio/jingles-presets/Jingle-1.mp3\")"
     ]
   }
 }
