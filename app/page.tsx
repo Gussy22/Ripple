@@ -24,16 +24,16 @@ export default function Home() {
           {/* Copy */}
           <div>
             <p className="text-[11px] font-semibold text-clay uppercase tracking-widest mb-7">
-              Un podcast cadeau · Livré chaque semaine par email
+              Livré automatiquement chaque semaine par email
             </p>
             <h1 className="font-serif text-5xl lg:text-[3.75rem] font-medium leading-[1.1] tracking-tight mb-6">
-              Tout ce qu&apos;on voulait leur dire,{" "}
-              <em className="text-clay not-italic">enfin dit.</em>
+              Les voix de vos proches,{" "}
+              <em className="text-clay not-italic">en podcast cadeau.</em>
             </h1>
             <p className="text-lg text-ink-muted leading-relaxed mb-10 max-w-lg">
-              Dearly réunit les voix de vos proches en un podcast surprise.
-              Chacun enregistre ce qu&apos;il a sur le cœur — un souvenir, un merci, un mot d&apos;amour.
-              Livré automatiquement, chaque semaine.
+              Organisez un podcast surprise avec les messages vocaux de la famille
+              et des amis. Chaque semaine, un épisode monté automatiquement arrive
+              dans la boîte mail du destinataire.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
