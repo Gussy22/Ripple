@@ -9,12 +9,20 @@ export default function Home() {
       {/* Navigation */}
       <nav className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
         <span className="font-serif italic text-xl font-medium tracking-tight text-ink">dearly</span>
-        <Link
-          href="/projet/nouveau"
-          className="bg-ink text-cream text-sm font-medium px-5 py-2.5 rounded-full hover:opacity-75 transition-opacity"
-        >
-          Créer un projet
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/compte"
+            className="text-sm text-ink-muted hover:text-ink transition-colors"
+          >
+            Mon compte
+          </Link>
+          <Link
+            href="/projet/nouveau"
+            className="bg-ink text-cream text-sm font-medium px-5 py-2.5 rounded-full hover:opacity-75 transition-opacity"
+          >
+            Créer un projet
+          </Link>
+        </div>
       </nav>
 
       {/* Hero */}
