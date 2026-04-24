@@ -28,6 +28,8 @@ export default function Compte() {
   const [email, setEmail] = useState<string | null>(null);
   const [projets, setProjets] = useState<ProjetResume[]>([]);
   const [chargement, setChargement] = useState(true);
+  const [confirmSuppression, setConfirmSuppression] = useState<string | null>(null);
+  const [supprimant, setSupprimant] = useState(false);
 
   useEffect(() => {
     const charger = async () => {
@@ -52,6 +54,20 @@ export default function Compte() {
   const seDeconnecter = async () => {
     await fetch("/api/compte/deconnexion", { method: "POST" });
     router.replace("/compte/connexion");
+  };
+
+  const supprimerProjet = async (id: string) => {
+    setSupprimant(true);
+    try {
+      const res = await fetch(`/api/compte/projets/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setProjets(ps => ps.filter(p => p.id !== id));
+      setConfirmSuppression(null);
+    } catch {
+      alert("Erreur lors de la suppression. Réessayez.");
+    } finally {
+      setSupprimant(false);
+    }
   };
 
   const fmtDate = (d: string) =>
@@ -101,38 +117,71 @@ export default function Compte() {
         ) : (
           <div className="space-y-3">
             {projets.map(p => (
-              <Link
-                key={p.id}
-                href={`/projet/${p.id}`}
-                className="block bg-white rounded-2xl border border-ink/6 p-5 hover:border-clay/30 hover:shadow-sm transition-all group"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h2 className="font-semibold text-ink group-hover:text-clay transition-colors truncate">
-                        Podcast pour {p.destinataire_prenom}
-                      </h2>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${
-                        p.statut === "actif"    ? "bg-green-100 text-green-700" :
-                        p.statut === "termine"  ? "bg-gray-100 text-gray-500" :
-                        "bg-amber-100 text-amber-700"
-                      }`}>
-                        {p.statut === "actif" ? "Actif" : p.statut === "termine" ? "Terminé" : "Brouillon"}
-                      </span>
-                    </div>
-                    <p className="text-sm text-ink-muted">
-                      {CATEGORIES_FR[p.categorie] || p.categorie} · {p.nombre_episodes} épisode{p.nombre_episodes > 1 ? "s" : ""} · Créé le {fmtDate(p.created_at)}
+              <div key={p.id} className="bg-white rounded-2xl border border-ink/6 overflow-hidden">
+                {confirmSuppression === p.id ? (
+                  /* Confirmation de suppression */
+                  <div className="p-5 flex items-center justify-between gap-4">
+                    <p className="text-sm text-ink">
+                      Supprimer <strong>Podcast pour {p.destinataire_prenom}</strong> ? Cette action est irréversible.
                     </p>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => setConfirmSuppression(null)}
+                        className="text-xs text-ink-muted border border-ink/10 px-3 py-1.5 rounded-lg hover:bg-ink/5 transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={() => supprimerProjet(p.id)}
+                        disabled={supprimant}
+                        className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-500 transition-colors disabled:opacity-50"
+                      >
+                        {supprimant ? "Suppression…" : "Supprimer"}
+                      </button>
+                    </div>
                   </div>
-                  <svg
-                    className="text-ink-muted group-hover:text-clay transition-colors flex-shrink-0"
-                    width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  >
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </div>
-              </Link>
+                ) : (
+                  /* Ligne normale */
+                  <div className="flex items-center gap-3 p-5 group">
+                    <Link href={`/projet/${p.id}`} className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h2 className="font-semibold text-ink group-hover:text-clay transition-colors truncate">
+                          Podcast pour {p.destinataire_prenom}
+                        </h2>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${
+                          p.statut === "actif"   ? "bg-green-100 text-green-700" :
+                          p.statut === "termine" ? "bg-gray-100 text-gray-500" :
+                          "bg-amber-100 text-amber-700"
+                        }`}>
+                          {p.statut === "actif" ? "Actif" : p.statut === "termine" ? "Terminé" : "Brouillon"}
+                        </span>
+                      </div>
+                      <p className="text-sm text-ink-muted">
+                        {CATEGORIES_FR[p.categorie] || p.categorie} · {p.nombre_episodes} épisode{p.nombre_episodes > 1 ? "s" : ""} · Créé le {fmtDate(p.created_at)}
+                      </p>
+                    </Link>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => setConfirmSuppression(p.id)}
+                        className="p-2 text-ink-muted hover:text-red-500 transition-colors rounded-lg hover:bg-red-50"
+                        title="Supprimer ce projet"
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                          <path d="M10 11v6M14 11v6"/>
+                          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                      </button>
+                      <Link href={`/projet/${p.id}`} className="text-ink-muted hover:text-clay transition-colors">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
 
             <Link
