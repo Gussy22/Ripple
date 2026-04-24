@@ -1,258 +1,290 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import type { Contributeur, Projet } from "@/lib/types";
+import Link from "next/link";
+import type { Contributeur, Projet, Episode, Enregistrement } from "@/lib/types";
 
-type EtatEnregistrement = "idle" | "enregistrement" | "termine" | "envoye" | "erreur";
+type RecEtat = "idle" | "enregistrement" | "termine" | "envoye";
 
 export default function PageContributeur() {
   const params = useParams();
+
   const [contributeur, setContributeur] = useState<Contributeur | null>(null);
   const [projet, setProjet] = useState<Projet | null>(null);
+  const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const [enregistrements, setEnregistrements] = useState<Enregistrement[]>([]);
   const [chargement, setChargement] = useState(true);
-  const [etat, setEtat] = useState<EtatEnregistrement>("idle");
-  const [duree, setDuree] = useState(0);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [erreur, setErreur] = useState("");
+  const [erreurPage, setErreurPage] = useState("");
+
+  const [recEpisodeId, setRecEpisodeId] = useState<string | null>(null);
+  const [recEtat, setRecEtat] = useState<RecEtat>("idle");
+  const [recDuree, setRecDuree] = useState(0);
+  const [recBlob, setRecBlob] = useState<Blob | null>(null);
+  const [recUrl, setRecUrl] = useState<string | null>(null);
+  const [recEnvoi, setRecEnvoi] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const DUREE_MIN = 3 * 60; // 3 minutes en secondes
-  const DUREE_MAX = 5 * 60; // 5 minutes
+  const DUREE_MAX = 10 * 60; // 10 minutes max, sans contrainte de minimum
 
-  useEffect(() => {
-    const charger = async () => {
-      try {
-        const res = await fetch(`/api/contributeurs/${params.token}`);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        setContributeur(data.contributeur);
-        setProjet(data.projet);
-      } catch {
-        setErreur("Lien invalide ou expiré.");
-      } finally {
-        setChargement(false);
-      }
-    };
-    charger();
+  const charger = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/contributeurs/${params.token}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setContributeur(data.contributeur);
+      setProjet(data.projet);
+      setEpisodes(data.episodes || []);
+      setEnregistrements(data.enregistrements || []);
+    } catch {
+      setErreurPage("Ce lien est invalide ou a expiré.");
+    } finally {
+      setChargement(false);
+    }
   }, [params.token]);
 
-  const demarrerEnregistrement = async () => {
+  useEffect(() => { charger(); }, [charger]);
+
+  // Épisodes déjà enregistrés par ce contributeur
+  const episodesEnregistres = useMemo(() => {
+    const ids = new Set<string>();
+    enregistrements.forEach(r => { if (r.episode_id) ids.add(r.episode_id); });
+    return ids;
+  }, [enregistrements]);
+
+  const demarrerRec = async (episodeId: string) => {
+    if (recEpisodeId && recEpisodeId !== episodeId) resetRec();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       chunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
-        setEtat("termine");
-        stream.getTracks().forEach((t) => t.stop());
+        setRecBlob(blob);
+        setRecUrl(URL.createObjectURL(blob));
+        setRecEtat("termine");
+        stream.getTracks().forEach(t => t.stop());
       };
-
       recorder.start();
       mediaRecorderRef.current = recorder;
-      setDuree(0);
-      setEtat("enregistrement");
-
+      setRecDuree(0);
+      setRecEpisodeId(episodeId);
+      setRecEtat("enregistrement");
       intervalRef.current = setInterval(() => {
-        setDuree((d) => {
-          if (d + 1 >= DUREE_MAX) {
-            arreterEnregistrement();
-          }
+        setRecDuree(d => {
+          if (d + 1 >= DUREE_MAX) arreterRec();
           return d + 1;
         });
       }, 1000);
     } catch {
-      setErreur("Impossible d'accéder au microphone. Vérifiez les permissions de votre navigateur.");
+      alert("Impossible d'accéder au microphone. Vérifiez les permissions de votre navigateur.");
     }
   };
 
-  const arreterEnregistrement = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
+  const arreterRec = () => {
+    if (mediaRecorderRef.current?.state !== "inactive") mediaRecorderRef.current?.stop();
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
-  const recommencer = () => {
-    setAudioBlob(null);
-    setAudioUrl(null);
-    setDuree(0);
-    setEtat("idle");
+  const resetRec = () => {
+    setRecBlob(null); setRecUrl(null); setRecDuree(0);
+    setRecEtat("idle"); setRecEpisodeId(null);
   };
 
-  const envoyer = async () => {
-    if (!audioBlob) return;
-    setEtat("envoye");
+  const envoyerRec = async () => {
+    if (!recBlob || !contributeur || !recEpisodeId) return;
+    setRecEnvoi(true);
     try {
       const formData = new FormData();
-      formData.append("audio", audioBlob, "enregistrement.webm");
+      formData.append("audio", recBlob, "enregistrement.webm");
       formData.append("token", params.token as string);
-      formData.append("duree", String(duree));
-
-      const res = await fetch("/api/enregistrements", {
-        method: "POST",
-        body: formData,
-      });
-
+      formData.append("duree", String(recDuree));
+      formData.append("episodeId", recEpisodeId);
+      const res = await fetch("/api/enregistrements", { method: "POST", body: formData });
       if (!res.ok) throw new Error();
+      setRecEtat("envoye");
+      // Recharger pour mettre à jour les statuts
+      await charger();
+      // Fermer le recorder après 2 secondes
+      setTimeout(resetRec, 2000);
     } catch {
-      setEtat("erreur");
-      setErreur("Erreur lors de l'envoi. Réessayez.");
+      alert("Erreur lors de l'envoi. Réessayez.");
+    } finally {
+      setRecEnvoi(false);
     }
   };
 
-  const formatDuree = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  };
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
 
-  const progressPct = Math.min((duree / DUREE_MAX) * 100, 100);
-  const dansBonneDuree = duree >= DUREE_MIN && duree <= DUREE_MAX;
+  // --- États de chargement et d'erreur ---
 
-  if (chargement) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-400">Chargement…</p>
+  if (chargement) return (
+    <div className="min-h-screen bg-cream flex items-center justify-center">
+      <p className="text-ink-muted">Chargement…</p>
+    </div>
+  );
+
+  if (erreurPage) return (
+    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
+      <div className="text-center">
+        <Link href="/" className="font-serif italic text-2xl font-medium text-ink mb-8 block">dearly</Link>
+        <p className="text-ink-muted">{erreurPage}</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (erreur && !contributeur) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center">
-          <p className="text-4xl mb-4">😕</p>
-          <p className="text-gray-700 font-medium">{erreur}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (etat === "envoye") {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <p className="text-6xl mb-6">🎉</p>
-          <h1 className="text-2xl font-bold text-gray-900 mb-3">Message envoyé !</h1>
-          <p className="text-gray-500">
-            Merci {contributeur?.prenom} ! Votre message vocal a bien été reçu et sera intégré dans le podcast de {projet?.destinataire_prenom}.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const totalEnregistrés = episodesEnregistres.size;
+  const tousEnregistrés = totalEnregistrés === episodes.length && episodes.length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <a href="/" className="text-2xl font-bold text-gray-900">dearly</a>
+    <div className="min-h-screen bg-cream">
+
+      <nav className="max-w-2xl mx-auto px-4 py-5">
+        <Link href="/" className="font-serif italic text-xl font-medium text-ink">dearly</Link>
+      </nav>
+
+      <div className="max-w-2xl mx-auto px-4 pb-16 space-y-4">
+
+        {/* En-tête */}
+        <div className="bg-white rounded-3xl border border-ink/6 p-6">
+          <p className="text-ink-muted text-sm mb-1">Bonjour {contributeur?.prenom}</p>
+          <h1 className="font-serif text-2xl font-medium text-ink leading-tight mb-4">
+            Vous participez au podcast de{" "}
+            <em className="text-clay not-italic">{projet?.destinataire_prenom}</em>
+          </h1>
+
+          {tousEnregistrés ? (
+            <div
+              className="rounded-2xl px-4 py-3 text-sm font-medium text-ink"
+              style={{ backgroundColor: "oklch(93% 0.045 70)" }}
+            >
+              Vous avez enregistré tous les épisodes. Merci pour votre participation.
+            </div>
+          ) : (
+            <p className="text-ink-muted text-sm leading-relaxed">
+              Enregistrez votre message pour chaque épisode ci-dessous.
+              Prenez le temps qu&apos;il vous faut — pas de durée imposée.
+            </p>
+          )}
         </div>
 
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-          {/* En-tête */}
-          <div className="text-center mb-8">
-            <p className="text-gray-500 text-sm mb-1">Bonjour {contributeur?.prenom} 👋</p>
-            <h1 className="text-xl font-bold text-gray-900">
-              Enregistrez votre message pour {projet?.destinataire_prenom}
-            </h1>
-            <p className="text-gray-400 text-sm mt-2">Entre 3 et 5 minutes</p>
+        {/* Épisodes */}
+        <div className="bg-white rounded-3xl border border-ink/6 p-6">
+          <h2 className="font-semibold text-ink mb-4">
+            Épisodes
+            <span className="ml-2 text-xs font-normal text-ink-muted">
+              {totalEnregistrés}/{episodes.length} enregistré{totalEnregistrés > 1 ? "s" : ""}
+            </span>
+          </h2>
+
+          <div className="space-y-3">
+            {episodes.map((ep) => {
+              const déjàEnregistré = episodesEnregistres.has(ep.id);
+              const isRecording = recEpisodeId === ep.id;
+              const vientDEnvoyer = recEtat === "envoye" && isRecording;
+
+              return (
+                <div key={ep.id} className="rounded-2xl border border-ink/6 overflow-hidden">
+                  {/* Ligne principale */}
+                  <div className="flex items-center gap-3 p-4">
+                    <span
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
+                      style={{ backgroundColor: "oklch(60% 0.13 50)" }}
+                    >
+                      {ep.numero}
+                    </span>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ink truncate">{ep.titre}</p>
+                      <p className="text-xs text-ink-muted mt-0.5">{fmtDate(ep.date_envoi)}</p>
+                    </div>
+
+                    <div className="flex-shrink-0">
+                      {déjàEnregistré || vientDEnvoyer ? (
+                        <span className="text-xs text-green-700 bg-green-50 px-2.5 py-1 rounded-full font-medium">
+                          Enregistré ✓
+                        </span>
+                      ) : isRecording ? (
+                        <button onClick={resetRec}
+                          className="text-xs text-ink-muted border border-ink/10 px-3 py-1.5 rounded-lg hover:bg-ink/5">
+                          Fermer
+                        </button>
+                      ) : (
+                        <button onClick={() => demarrerRec(ep.id)}
+                          className="text-xs bg-ink text-cream px-3 py-1.5 rounded-lg hover:opacity-75 transition-opacity">
+                          Enregistrer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Recorder inline */}
+                  {isRecording && recEtat !== "envoye" && (
+                    <div className="border-t border-ink/6 bg-cream px-4 py-6">
+                      {recEtat === "idle" && (
+                        <div className="text-center">
+                          <button
+                            onClick={() => demarrerRec(ep.id)}
+                            className="w-20 h-20 rounded-full bg-red-500 text-white text-3xl hover:bg-red-400 active:scale-95 transition-all shadow-lg mx-auto flex items-center justify-center"
+                          >
+                            🎙️
+                          </button>
+                          <p className="text-ink-muted text-sm mt-4">Appuyez pour commencer</p>
+                          <p className="text-ink-muted text-xs mt-1">Prenez le temps qu&apos;il vous faut</p>
+                        </div>
+                      )}
+
+                      {recEtat === "enregistrement" && (
+                        <div className="text-center">
+                          <div className="relative w-20 h-20 mx-auto mb-4">
+                            <div className="absolute inset-0 rounded-full bg-red-100 animate-ping opacity-75" />
+                            <button
+                              onClick={arreterRec}
+                              className="relative w-20 h-20 rounded-full bg-red-500 text-white text-3xl hover:bg-red-400 shadow-lg flex items-center justify-center"
+                            >
+                              ⏹
+                            </button>
+                          </div>
+                          <p className="text-3xl font-mono font-bold text-ink">{fmt(recDuree)}</p>
+                          <p className="text-ink-muted text-sm mt-2">Appuyez pour arrêter</p>
+                        </div>
+                      )}
+
+                      {recEtat === "termine" && recUrl && (
+                        <div>
+                          <p className="text-sm text-ink-muted mb-3 text-center">
+                            Écoutez votre enregistrement, puis validez.
+                          </p>
+                          <audio controls src={recUrl} className="w-full mb-4 rounded-xl" />
+                          <div className="flex gap-3">
+                            <button onClick={resetRec}
+                              className="flex-1 border border-ink/10 text-ink-muted py-3 rounded-xl text-sm hover:bg-ink/5 transition-colors">
+                              Recommencer
+                            </button>
+                            <button onClick={envoyerRec} disabled={recEnvoi}
+                              className="flex-1 bg-ink text-cream py-3 rounded-xl text-sm font-medium hover:opacity-75 transition-opacity disabled:opacity-40">
+                              {recEnvoi ? "Envoi…" : "Valider ✓"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-
-          {/* Zone d'enregistrement */}
-          {etat === "idle" && (
-            <div className="text-center">
-              <button
-                onClick={demarrerEnregistrement}
-                className="w-24 h-24 rounded-full bg-red-500 text-white text-4xl hover:bg-red-400 active:scale-95 transition-all shadow-lg mx-auto flex items-center justify-center"
-              >
-                🎙️
-              </button>
-              <p className="text-gray-400 text-sm mt-4">Appuyez pour commencer</p>
-            </div>
-          )}
-
-          {etat === "enregistrement" && (
-            <div className="text-center">
-              {/* Indicateur animé */}
-              <div className="relative w-24 h-24 mx-auto mb-4">
-                <div className="absolute inset-0 rounded-full bg-red-100 animate-ping opacity-75" />
-                <button
-                  onClick={arreterEnregistrement}
-                  className="relative w-24 h-24 rounded-full bg-red-500 text-white text-4xl hover:bg-red-400 active:scale-95 transition-all shadow-lg flex items-center justify-center"
-                >
-                  ⏹️
-                </button>
-              </div>
-
-              {/* Durée */}
-              <p className="text-3xl font-mono font-bold text-gray-900 mb-2">{formatDuree(duree)}</p>
-              <p className="text-sm text-gray-400 mb-4">Appuyez pour arrêter</p>
-
-              {/* Barre de progression */}
-              <div className="w-full bg-gray-100 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all ${
-                    duree < DUREE_MIN ? "bg-orange-400" : "bg-green-400"
-                  }`}
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
-                <span>0:00</span>
-                <span className="text-orange-500">3:00 min</span>
-                <span>5:00</span>
-              </div>
-            </div>
-          )}
-
-          {etat === "termine" && audioUrl && (
-            <div>
-              {/* Indicateur durée */}
-              <div className={`text-center mb-4 p-3 rounded-xl ${dansBonneDuree ? "bg-green-50" : "bg-orange-50"}`}>
-                <p className={`font-medium text-sm ${dansBonneDuree ? "text-green-700" : "text-orange-700"}`}>
-                  {dansBonneDuree
-                    ? `✓ Durée parfaite : ${formatDuree(duree)}`
-                    : duree < DUREE_MIN
-                    ? `⚠️ Trop court : ${formatDuree(duree)} (minimum 3:00)`
-                    : `⚠️ Trop long : ${formatDuree(duree)} (maximum 5:00)`}
-                </p>
-              </div>
-
-              {/* Lecteur audio */}
-              <audio controls src={audioUrl} className="w-full mb-6 rounded-xl" />
-
-              {erreur && <p className="text-red-500 text-sm mb-4">{erreur}</p>}
-
-              <div className="flex gap-3">
-                <button
-                  onClick={recommencer}
-                  className="flex-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Recommencer
-                </button>
-                <button
-                  onClick={envoyer}
-                  className="flex-1 bg-gray-900 text-white py-3 rounded-xl font-medium hover:bg-gray-700 transition-colors"
-                >
-                  Envoyer ✓
-                </button>
-              </div>
-            </div>
-          )}
         </div>
+
+        <p className="text-center text-xs text-ink-muted pb-4">
+          {projet?.destinataire_prenom} recevra ce podcast comme une surprise.
+        </p>
+
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
     const audioFile = formData.get("audio") as File;
     const token = formData.get("token") as string;
     const duree = Number(formData.get("duree") || 0);
+    const episodeIdForcé = (formData.get("episodeId") as string | null) || null;
 
     if (!audioFile || !token) {
       return NextResponse.json({ erreur: "Données manquantes." }, { status: 400 });
@@ -38,36 +39,22 @@ export async function POST(req: NextRequest) {
 
     const { data: urlData } = supabase.storage.from("audio").getPublicUrl(nomFichier);
 
-    // Assigner à l'épisode qui a le moins d'enregistrements (tourniquet)
-    const { data: episodes } = await supabase
-      .from("episodes")
-      .select("id, numero")
-      .eq("projet_id", contributeur.projet_id)
-      .order("numero");
+    // Épisode cible : soit celui demandé, soit le premier disponible
+    let episodeId: string | null = episodeIdForcé;
 
-    let episodeId: string | null = null;
+    if (!episodeId) {
+      const { data: episodes } = await supabase
+        .from("episodes")
+        .select("id, numero")
+        .eq("projet_id", contributeur.projet_id)
+        .order("numero");
 
-    if (episodes && episodes.length > 0) {
-      // Compter les enregistrements par épisode
-      const { data: comptages } = await supabase
-        .from("enregistrements")
-        .select("episode_id")
-        .eq("projet_id", contributeur.projet_id);
-
-      const compte: Record<string, number> = {};
-      episodes.forEach((ep) => { compte[ep.id] = 0; });
-      (comptages || []).forEach((e) => {
-        if (e.episode_id) compte[e.episode_id] = (compte[e.episode_id] || 0) + 1;
-      });
-
-      // Choisir l'épisode avec le moins d'enregistrements
-      episodeId = episodes.reduce((min, ep) =>
-        compte[ep.id] < compte[min] ? ep.id : min,
-        episodes[0].id
-      );
+      if (episodes && episodes.length > 0) {
+        episodeId = episodes[0].id;
+      }
     }
 
-    // Sauvegarder l'enregistrement en base
+    // Sauvegarder l'enregistrement
     await supabase.from("enregistrements").insert({
       contributeur_id: contributeur.id,
       projet_id: contributeur.projet_id,
@@ -76,7 +63,6 @@ export async function POST(req: NextRequest) {
       duree_secondes: duree,
     });
 
-    // Mettre à jour le statut de l'épisode
     if (episodeId) {
       await supabase
         .from("episodes")

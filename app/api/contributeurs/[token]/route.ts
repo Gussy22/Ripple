@@ -19,13 +19,18 @@ export async function GET(
       return NextResponse.json({ erreur: "Lien invalide." }, { status: 404 });
     }
 
-    const { data: projet } = await supabase
-      .from("projets")
-      .select("*")
-      .eq("id", contributeur.projet_id)
-      .single();
+    const [projetRes, episodesRes, enregistrementsRes] = await Promise.all([
+      supabase.from("projets").select("*").eq("id", contributeur.projet_id).single(),
+      supabase.from("episodes").select("*").eq("projet_id", contributeur.projet_id).order("numero"),
+      supabase.from("enregistrements").select("*").eq("contributeur_id", contributeur.id),
+    ]);
 
-    return NextResponse.json({ contributeur, projet });
+    return NextResponse.json({
+      contributeur,
+      projet: projetRes.data,
+      episodes: episodesRes.data || [],
+      enregistrements: enregistrementsRes.data || [],
+    });
   } catch (error) {
     console.error("Erreur GET contributeur:", error);
     return NextResponse.json({ erreur: "Erreur serveur." }, { status: 500 });
