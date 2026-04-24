@@ -13,6 +13,7 @@ export async function POST(
 
     const audioFile = formData.get("audio") as File;
     const duree = Number(formData.get("duree") || 0);
+    const episodeIdForcé = (formData.get("episodeId") as string | null) || null;
 
     if (!audioFile) {
       return NextResponse.json({ erreur: "Fichier audio manquant." }, { status: 400 });
@@ -67,30 +68,33 @@ export async function POST(
 
     const { data: urlData } = supabase.storage.from("audio").getPublicUrl(nomFichier);
 
-    // Assigner à l'épisode avec le moins d'enregistrements
-    const { data: episodes } = await supabase
-      .from("episodes")
-      .select("id, numero")
-      .eq("projet_id", projetId)
-      .order("numero");
+    // Assigner à l'épisode : soit celui demandé, soit round-robin
+    let episodeId: string | null = episodeIdForcé;
 
-    let episodeId: string | null = null;
-    if (episodes && episodes.length > 0) {
-      const { data: comptages } = await supabase
-        .from("enregistrements")
-        .select("episode_id")
-        .eq("projet_id", projetId);
+    if (!episodeId) {
+      const { data: episodes } = await supabase
+        .from("episodes")
+        .select("id, numero")
+        .eq("projet_id", projetId)
+        .order("numero");
 
-      const compte: Record<string, number> = {};
-      episodes.forEach((ep) => { compte[ep.id] = 0; });
-      (comptages || []).forEach((e) => {
-        if (e.episode_id) compte[e.episode_id] = (compte[e.episode_id] || 0) + 1;
-      });
+      if (episodes && episodes.length > 0) {
+        const { data: comptages } = await supabase
+          .from("enregistrements")
+          .select("episode_id")
+          .eq("projet_id", projetId);
 
-      episodeId = episodes.reduce((min, ep) =>
-        compte[ep.id] < compte[min] ? ep.id : min,
-        episodes[0].id
-      );
+        const compte: Record<string, number> = {};
+        episodes.forEach((ep) => { compte[ep.id] = 0; });
+        (comptages || []).forEach((e) => {
+          if (e.episode_id) compte[e.episode_id] = (compte[e.episode_id] || 0) + 1;
+        });
+
+        episodeId = episodes.reduce((min, ep) =>
+          compte[ep.id] < compte[min] ? ep.id : min,
+          episodes[0].id
+        );
+      }
     }
 
     // Sauvegarder l'enregistrement
