@@ -24,23 +24,23 @@ export default function Home() {
           {/* Copy */}
           <div>
             <p className="text-[11px] font-semibold text-clay uppercase tracking-widest mb-7">
-              Livré automatiquement chaque semaine par email
+              Un podcast cadeau · Livré chaque semaine par email
             </p>
             <h1 className="font-serif text-5xl lg:text-[3.75rem] font-medium leading-[1.1] tracking-tight mb-6">
-              Les voix de vos proches,{" "}
-              <em className="text-clay not-italic">en podcast cadeau.</em>
+              Tout ce qu&apos;on voulait leur dire,{" "}
+              <em className="text-clay not-italic">enfin dit.</em>
             </h1>
             <p className="text-lg text-ink-muted leading-relaxed mb-10 max-w-lg">
-              Organisez un podcast surprise avec les messages vocaux de la famille
-              et des amis. Chaque semaine, un épisode monté automatiquement arrive
-              dans la boîte mail du destinataire.
+              Dearly réunit les voix de vos proches en un podcast surprise.
+              Chacun enregistre ce qu&apos;il a sur le cœur — un souvenir, un merci, un mot d&apos;amour.
+              Livré automatiquement, chaque semaine.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href="/projet/nouveau"
                 className="inline-flex items-center justify-center bg-ink text-cream font-medium px-8 py-3.5 rounded-xl hover:opacity-75 transition-opacity"
               >
-                Créer un podcast cadeau
+                Créer mon podcast cadeau
               </Link>
               <a
                 href="#comment"
@@ -49,7 +49,7 @@ export default function Home() {
                 Comment ça marche
               </a>
             </div>
-            <p className="mt-4 text-xs text-ink-muted">Gratuit · Aucune application à installer</p>
+            <p className="mt-4 text-xs text-ink-muted">Gratuit · 5 minutes pour commencer · Aucune application</p>
           </div>
 
           {/* Audio player mockup */}
@@ -69,7 +69,7 @@ export default function Home() {
                 </div>
                 <div>
                   <p className="text-[11px] text-ink-muted mb-0.5">Épisode 2 · Pour Marie</p>
-                  <p className="font-medium text-ink text-sm leading-snug">Ce souvenir que je garde précieusement</p>
+                  <p className="font-medium text-ink text-sm leading-snug">Ce que je n&apos;ai jamais su lui dire</p>
                 </div>
               </div>
 
@@ -142,35 +142,52 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Section émotionnelle — le vrai problème */}
+      <section className="bg-white py-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="font-serif text-3xl md:text-4xl font-medium text-ink mb-6 tracking-tight">
+            On remet toujours à plus tard.
+          </h2>
+          <p className="text-lg text-ink-muted leading-relaxed max-w-2xl mx-auto mb-6">
+            Il y a des mots qu&apos;on n&apos;a jamais trouvé le bon moment pour dire.
+            À sa mère, à son père, à un ami qu&apos;on ne voit plus assez souvent.
+            Des remerciements, des souvenirs, des déclarations simples qui restent dans la gorge.
+          </p>
+          <p className="text-lg text-ink leading-relaxed font-medium max-w-xl mx-auto">
+            Dearly donne à chacun l&apos;occasion de les dire — en quelques minutes,
+            depuis son téléphone, pour quelqu&apos;un qui compte vraiment.
+          </p>
+        </div>
+      </section>
+
       {/* Comment ça marche */}
-      <section id="comment" className="bg-white py-24 px-6">
+      <section id="comment" className="bg-cream py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <p className="text-center text-[11px] font-semibold text-clay uppercase tracking-widest mb-3">
             Comment ça marche
           </p>
           <h2 className="font-serif text-3xl md:text-4xl font-medium text-ink text-center mb-16 tracking-tight">
-            Aussi simple qu&apos;un message vocal
+            Simple comme un message vocal
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 relative">
-            {/* Connecting line, desktop only */}
             <div className="hidden md:block absolute top-10 left-[16.666%] right-[16.666%] h-px bg-ink/8" />
 
             {[
               {
                 num: "01",
-                titre: "Vous organisez",
-                desc: "Choisissez l'occasion, les titres des épisodes, invitez vos proches par email et choisissez un jingle.",
+                titre: "Vous créez l'occasion",
+                desc: "Choisissez l'occasion, les titres des épisodes, invitez vos proches par email. Tout se passe en 5 minutes.",
               },
               {
                 num: "02",
-                titre: "Ils enregistrent",
-                desc: "Chaque invité reçoit un lien et enregistre son message vocal en un clic, sans inscription, depuis son téléphone.",
+                titre: "Chacun dit ce qu'il a sur le cœur",
+                desc: "Pas d'application, pas de compte. Un lien, un clic, et leur voix est enregistrée — depuis n'importe quel téléphone.",
               },
               {
                 num: "03",
-                titre: "Dearly livre",
-                desc: "Chaque semaine, un épisode monté automatiquement arrive dans la boîte mail du destinataire.",
+                titre: "Ces mots arrivent chaque semaine",
+                desc: "Dearly assemble tout automatiquement. Un vrai podcast, avec jingle et transitions, livré par email.",
               },
             ].map((step) => (
               <div key={step.num} className="flex flex-col items-center text-center px-8 pb-8 md:pb-0">
@@ -189,23 +206,23 @@ export default function Home() {
       </section>
 
       {/* Les occasions */}
-      <section className="py-24 px-6 bg-cream">
+      <section className="py-24 px-6 bg-white">
         <div className="max-w-3xl mx-auto">
           <p className="text-center text-[11px] font-semibold text-clay uppercase tracking-widest mb-3">
             Pour chaque moment fort
           </p>
           <h2 className="font-serif text-3xl md:text-4xl font-medium text-ink text-center mb-14 tracking-tight">
-            Une occasion, un podcast unique
+            Une occasion de dire ce qui compte
           </h2>
 
           <div className="divide-y divide-ink/6">
             {[
-              { titre: "Anniversaire", desc: "Les 40 ans, les 70 ans — tous les âges méritent d'être célébrés en voix." },
-              { titre: "Mariage", desc: "Un cadeau qui touche au cœur, bien après la fête." },
-              { titre: "Retraite", desc: "Une carrière, des souvenirs, des voix qui disent merci." },
+              { titre: "Anniversaire", desc: "Les 40 ans, les 70 ans — l'âge où les mots d'amour méritent enfin d'être dits à voix haute." },
+              { titre: "Mariage", desc: "Un cadeau qui capture tout ce qu'on n'a pas pu dire pendant le discours." },
+              { titre: "Retraite", desc: "Des années de travail, des collègues qui ont des choses à dire — Dearly leur donne la parole." },
               { titre: "Naissance", desc: "Les premiers mots du monde pour accueillir un nouveau venu." },
-              { titre: "Départ", desc: "Pour ceux qui s'en vont loin — une valise de voix familières." },
-              { titre: "Autre occasion", desc: "Chaque moment qui mérite d'être gravé dans les mémoires." },
+              { titre: "Départ", desc: "Pour ceux qui s'en vont loin — des voix familières à emporter avec eux." },
+              { titre: "Autre occasion", desc: "Parfois il n'y a pas d'occasion particulière. Juste des choses à dire." },
             ].map((occ) => (
               <div key={occ.titre} className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between py-5 gap-1.5">
                 <h3 className="font-medium text-ink text-lg">{occ.titre}</h3>
@@ -229,12 +246,13 @@ export default function Home() {
             className="font-serif text-2xl md:text-3xl font-medium leading-relaxed mb-8"
             style={{ color: "oklch(92% 0.008 70)" }}
           >
-            Une photo, ça montre un visage.
+            J&apos;ai dit des choses que je n&apos;avais jamais trouvé
+            comment lui dire en face.
             <br />
-            Une voix, ça rappelle une personne entière.
+            Et je sais qu&apos;il les écoute encore.
           </blockquote>
           <p style={{ color: "oklch(55% 0.01 60)" }} className="text-sm tracking-wide">
-            L&apos;idée derrière Dearly
+            Ce que Dearly rend possible
           </p>
         </div>
       </section>
@@ -248,6 +266,10 @@ export default function Home() {
           <div className="divide-y divide-ink/6">
             {[
               {
+                q: "Que dit-on dans ces messages ?",
+                r: "Ce que vous voulez : un souvenir partagé, une blague, un merci sincère, des mots d'amour. Il n'y a pas de mauvaise réponse. C'est votre voix — c'est assez.",
+              },
+              {
                 q: "Les contributeurs ont-ils besoin d'un compte ?",
                 r: "Non. Ils reçoivent un lien par email et enregistrent leur message en un clic, sans inscription.",
               },
@@ -257,7 +279,7 @@ export default function Home() {
               },
               {
                 q: "Comment le destinataire reçoit-il les épisodes ?",
-                r: "Par email, chaque semaine, à la date que vous avez choisie. Il reçoit un lien pour écouter l'épisode.",
+                r: "Par email, chaque semaine, à la date que vous avez choisie. Il reçoit un lien pour écouter l'épisode quand il veut.",
               },
               {
                 q: "Puis-je uploader mon propre jingle ?",
@@ -280,17 +302,17 @@ export default function Home() {
             className="font-serif text-3xl md:text-4xl font-medium mb-4 tracking-tight"
             style={{ color: "oklch(97% 0.008 70)" }}
           >
-            Prêt à offrir quelque chose d&apos;inoubliable ?
+            Ces mots attendent d&apos;être dits.
           </h2>
           <p className="mb-10 leading-relaxed" style={{ color: "oklch(80% 0.04 60)" }}>
-            Créez votre projet en 5 minutes. Vos proches font le reste.
+            Créez votre projet en 5 minutes. Vos proches s&apos;occupent du reste.
           </p>
           <Link
             href="/projet/nouveau"
             className="inline-block bg-white font-semibold px-10 py-4 rounded-xl hover:opacity-90 transition-opacity"
             style={{ color: "oklch(48% 0.12 48)" }}
           >
-            Commencer maintenant
+            Créer mon podcast cadeau
           </Link>
         </div>
       </section>
