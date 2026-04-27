@@ -7,7 +7,7 @@ export type Categorie =
   | 'autre'
 
 export type StatutProjet = 'brouillon' | 'actif' | 'termine'
-export type StatutEpisode = 'en_attente' | 'enregistre' | 'monte' | 'envoye'
+export type StatutEpisode = 'en_attente' | 'enregistre' | 'monte' | 'valide' | 'envoye' | 'erreur'
 
 export interface Projet {
   id: string

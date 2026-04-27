@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     .from("episodes")
     .select("id, numero, titre, projet_id")
     .eq("date_envoi", aujourdhui)
-    .in("statut", ["en_attente", "enregistre", "monte"]);
+    .eq("statut", "valide");
 
   if (error) {
     console.error("Erreur récupération épisodes:", error);

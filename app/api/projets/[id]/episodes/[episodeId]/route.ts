@@ -22,7 +22,19 @@ export async function PATCH(
       return NextResponse.json({ succes: true });
     }
 
-    // Cas 2 : déplacer l'épisode (haut ou bas)
+    // Cas 2 : valider l'épisode pour envoi
+    if (body.action === "valider") {
+      const { error } = await supabase
+        .from("episodes")
+        .update({ statut: "valide" })
+        .eq("id", episodeId)
+        .eq("projet_id", projetId);
+
+      if (error) throw error;
+      return NextResponse.json({ succes: true });
+    }
+
+    // Cas 3 : déplacer l'épisode (haut ou bas)
     if (body.direction === "up" || body.direction === "down") {
       const { data: episodes, error: errEp } = await supabase
         .from("episodes")

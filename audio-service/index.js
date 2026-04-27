@@ -134,13 +134,13 @@ app.post('/traiter-episode', async (req, res) => {
     return res.status(401).json({ erreur: 'Non autorisé.' });
   }
 
-  const { episodeId } = req.body;
+  const { episodeId, preview } = req.body;
   if (!episodeId) {
     return res.status(400).json({ erreur: 'episodeId requis.' });
   }
 
   // Répondre immédiatement pour ne pas bloquer le cron Vercel
-  res.json({ statut: 'traitement_en_cours', episodeId });
+  res.json({ statut: preview ? 'apercu_en_cours' : 'traitement_en_cours', episodeId });
 
   const tmpDir = path.join(os.tmpdir(), uuidv4());
 
@@ -216,13 +216,19 @@ app.post('/traiter-episode', async (req, res) => {
     const { data: urlData } = supabase.storage.from('audio').getPublicUrl(nomFichier);
     const audioUrl = urlData.publicUrl;
 
-    // 8. Mettre à jour l'épisode
+    // 8. Mettre à jour l'épisode (toujours : stocker l'URL audio)
     await supabase
       .from('episodes')
       .update({ statut: 'monte', audio_final_url: audioUrl })
       .eq('id', episodeId);
 
-    // 9. Envoyer l'email au destinataire
+    // 9. Mode aperçu : on s'arrête ici, l'organisateur doit valider avant envoi
+    if (preview) {
+      console.log(`👁️ Aperçu prêt pour l'épisode ${episode.numero} — en attente de validation`);
+      return;
+    }
+
+    // 10. Envoyer l'email au destinataire
     const { data: emailData, error: emailErreur } = await resend.emails.send({
       from: 'Dearly <bonjour@dearly.fr>',
       to: projet.destinataire_email,
@@ -237,7 +243,7 @@ app.post('/traiter-episode', async (req, res) => {
 
     console.log(`📧 Email envoyé, ID Resend : ${emailData?.id}`);
 
-    // 10. Marquer comme envoyé
+    // 11. Marquer comme envoyé
     await supabase
       .from('episodes')
       .update({ statut: 'envoye' })

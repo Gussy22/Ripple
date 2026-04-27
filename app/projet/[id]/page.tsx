@@ -7,6 +7,7 @@ import type { Projet, Episode, Contributeur, Enregistrement } from "@/lib/types"
 import { JINGLES_PRESETS } from "@/lib/jingles-presets";
 
 type RecEtat = "idle" | "enregistrement" | "termine" | "envoye";
+type ApercuEtat = "idle" | "chargement" | "pret" | "valide";
 
 const AVATAR_COLORS = [
   "oklch(76% 0.12 50)",
@@ -63,6 +64,10 @@ export default function TableauDeBord() {
 
   const [showJingle, setShowJingle] = useState(false);
   const [changingJingle, setChangingJingle] = useState(false);
+
+  // Aperçu & validation
+  const [apercuEtats, setApercuEtats] = useState<Record<string, ApercuEtat>>({});
+  const [validating, setValidating] = useState<string | null>(null);
 
   const DUREE_MAX = 5 * 60;
 
@@ -226,14 +231,63 @@ export default function TableauDeBord() {
     }
   };
 
+  const demanderApercu = async (episodeId: string) => {
+    if (!projet) return;
+    setApercuEtats(s => ({ ...s, [episodeId]: "chargement" }));
+    try {
+      const res = await fetch(`/api/projets/${projet.id}/episodes/${episodeId}/apercu`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      // Le service répond immédiatement, le traitement est asynchrone
+      // On passe en mode "chargement" — le rechargement interval ou manuel montrera "pret"
+      setApercuEtats(s => ({ ...s, [episodeId]: "chargement" }));
+      // Poll toutes les 5s pendant 3 minutes max
+      const debut = Date.now();
+      const poll = setInterval(async () => {
+        if (Date.now() - debut > 3 * 60 * 1000) { clearInterval(poll); return; }
+        const r = await fetch(`/api/projets/${projet.id}`);
+        const d = await r.json();
+        const ep = (d.episodes as Episode[]).find(e => e.id === episodeId);
+        if (ep?.statut === "monte" && ep?.audio_final_url) {
+          clearInterval(poll);
+          setEpisodes(d.episodes);
+          setApercuEtats(s => ({ ...s, [episodeId]: "pret" }));
+        }
+      }, 5000);
+    } catch {
+      alert("Erreur lors du lancement de l'aperçu. Réessayez.");
+      setApercuEtats(s => ({ ...s, [episodeId]: "idle" }));
+    }
+  };
+
+  const validerEpisode = async (episodeId: string) => {
+    if (!projet) return;
+    setValidating(episodeId);
+    try {
+      const res = await fetch(`/api/projets/${projet.id}/episodes/${episodeId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "valider" }),
+      });
+      if (!res.ok) throw new Error();
+      setEpisodes(eps => eps.map(e => e.id === episodeId ? { ...e, statut: "valide" } : e));
+      setApercuEtats(s => ({ ...s, [episodeId]: "valide" }));
+    } catch {
+      alert("Erreur lors de la validation. Réessayez.");
+    } finally {
+      setValidating(null);
+    }
+  };
+
   const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
 
   const statutConfig: Record<string, { label: string; cls: string }> = {
-    en_attente: { label: "En attente", cls: "text-amber-700 bg-amber-50" },
+    en_attente: { label: "En attente",  cls: "text-amber-700 bg-amber-50" },
     enregistre: { label: "Enregistré",  cls: "text-blue-700 bg-blue-50" },
-    monte:      { label: "Monté",       cls: "text-purple-700 bg-purple-50" },
+    monte:      { label: "Aperçu prêt", cls: "text-purple-700 bg-purple-50" },
+    valide:     { label: "Validé",      cls: "text-emerald-700 bg-emerald-50" },
     envoye:     { label: "Envoyé",      cls: "text-green-700 bg-green-50" },
+    erreur:     { label: "Erreur",      cls: "text-red-700 bg-red-50" },
   };
 
   const jingleActuel = JINGLES_PRESETS.find(j => projet?.jingle_url === j.url);
@@ -376,6 +430,11 @@ export default function TableauDeBord() {
               const isRecording = recEpisodeId === ep.id;
               const isEditing = editingId === ep.id;
               const contributeursDeCetEp = contributeurs.filter(c => recsEp.has(c.id));
+              const apercuEtat = apercuEtats[ep.id] ?? "idle";
+              const peutApercu = recsEp.size > 0 && (ep.statut === "en_attente" || ep.statut === "enregistre");
+              const apercuPret = ep.statut === "monte" && !!ep.audio_final_url;
+              const estValide = ep.statut === "valide";
+              const estEnvoye = ep.statut === "envoye";
 
               return (
                 <div key={ep.id} className="rounded-2xl border border-ink/6 overflow-hidden">
@@ -464,6 +523,53 @@ export default function TableauDeBord() {
                       {contributeursDeCetEp.map((c, i) => (
                         <Avatar key={c.id} prenom={c.email === projet.organisateur_email ? "V" : c.prenom} index={i} size="sm" />
                       ))}
+                    </div>
+                  )}
+
+                  {/* Bloc aperçu / validation */}
+                  {(peutApercu || apercuEtat === "chargement" || apercuPret || estValide) && !estEnvoye && (
+                    <div className="border-t border-ink/6 bg-cream px-4 py-4">
+                      {apercuEtat === "chargement" && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-4 h-4 rounded-full border-2 border-clay/40 border-t-clay animate-spin flex-shrink-0" />
+                          <p className="text-sm text-ink-muted">Montage en cours… revenez dans quelques instants.</p>
+                        </div>
+                      )}
+
+                      {apercuEtat !== "chargement" && apercuPret && (
+                        <div className="space-y-3">
+                          <p className="text-xs font-semibold text-ink uppercase tracking-wide">Aperçu avant envoi</p>
+                          <audio controls src={ep.audio_final_url!} className="w-full rounded-xl" />
+                          <button
+                            onClick={() => validerEpisode(ep.id)}
+                            disabled={validating === ep.id}
+                            className="w-full bg-emerald-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-emerald-500 transition-colors disabled:opacity-40"
+                          >
+                            {validating === ep.id ? "Validation…" : "Valider l'envoi ✓"}
+                          </button>
+                        </div>
+                      )}
+
+                      {apercuEtat !== "chargement" && !apercuPret && !estValide && peutApercu && (
+                        <button
+                          onClick={() => demanderApercu(ep.id)}
+                          className="w-full border border-ink/12 text-ink-muted text-sm py-2.5 rounded-xl hover:bg-ink/4 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+                          </svg>
+                          Assembler l&apos;aperçu
+                        </button>
+                      )}
+
+                      {estValide && (
+                        <div className="flex items-center gap-2 text-emerald-700">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                          <p className="text-sm font-medium">Validé — sera envoyé à la date prévue.</p>
+                        </div>
+                      )}
                     </div>
                   )}
 
